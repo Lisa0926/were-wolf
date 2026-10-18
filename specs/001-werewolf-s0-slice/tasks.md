@@ -208,16 +208,16 @@ description: "狼人杀 S0 垂直切片实现任务清单（依 plan 里程碑 M
 **FR**: FR-002/004/005/007（交互面）。
 **依赖**: M6（autoplay 已验证引擎 + AI 驱动循环一致性）。
 
-- [ ] T027 实现驱动循环 hook 于 `projects/werewolf/src/ui/useGame.ts`：`pendingDecision` 行动者为 AI → 借出 rng 调 `deciderFor` → `dispatch`（纯 AI 阶段 `setTimeout` 300–800ms 可读延时，engine 恒同步）；行动者为真人 → 暴露待组件输入；dawn/exile → 自动 `confirm`；game_over → 终态。与 `tests/helpers/autoplay.ts` 同构（薄副本，不抽第五模块，research D5）
+- [x] T027 实现驱动循环 hook 于 `projects/werewolf/src/ui/useGame.ts`：`pendingDecision` 行动者为 AI → 借出 rng 调 `deciderFor` → `dispatch`（纯 AI 阶段 `setTimeout` 300–800ms 可读延时，engine 恒同步）；行动者为真人 → 暴露待组件输入；dawn/exile → 自动 `confirm`；game_over → 终态。与 `tests/helpers/autoplay.ts` 同构（薄副本，不抽第五模块，research D5）
   - 依赖：T026
   - 验收：源码走查覆盖契约 §2 驱动循环四分支；运行行为随 T031 场景走查
-- [ ] T028 [P] 实现日志流于 `projects/werewolf/src/ui/GameLog.tsx`：只消费 `eventsFor(humanSeat)` 投影流（硬约束 4）——阶段标题、死讯翻牌、发言、计票、判定滚动展示
+- [x] T028 [P] 实现日志流于 `projects/werewolf/src/ui/GameLog.tsx`：只消费 `eventsFor(humanSeat)` 投影流（硬约束 4）——阶段标题、死讯翻牌、发言、计票、判定滚动展示
   - 依赖：T027
   - 验收：源码不引用 `engine.eventLog`；展示正确性随 T031 走查
-- [ ] T029 [P] 实现输入面板于 `projects/werewolf/src/ui/InputPanel.tsx`：阶段驱动输入——狼刀点选（只列 `legalTargets`，狼队友不出现）、查验点选（排除自己）、发言文本框 + 跳过、投票点选（含自己）+ 弃票；真人死亡 → spectator（面板禁用，FR-007）；dawn/exile 无人工交互；不解析自由文本指令（规则 §6）
+- [x] T029 [P] 实现输入面板于 `projects/werewolf/src/ui/InputPanel.tsx`：阶段驱动输入——狼刀点选（只列 `legalTargets`，狼队友不出现）、查验点选（排除自己）、发言文本框 + 跳过、投票点选（含自己）+ 弃票；真人死亡 → spectator（面板禁用，FR-007）；dawn/exile 无人工交互；不解析自由文本指令（规则 §6）
   - 依赖：T027
   - 验收：非法目标不可选（quickstart 场景 1 对应预期）；行为随 T031 走查
-- [ ] T030 实现页面骨架于 `projects/werewolf/src/ui/App.tsx`（并接 `src/main.tsx`）：种子输入 + 开始按钮；终局结算（胜负阵营 + 全员身份表）；「导出事件流」按钮（Blob 下载 `.json`）；刷新即重开（无持久化）
+- [x] T030 实现页面骨架于 `projects/werewolf/src/ui/App.tsx`（并接 `src/main.tsx`）：种子输入 + 开始按钮；终局结算（胜负阵营 + 全员身份表）；「导出事件流」按钮（Blob 下载 `.json`）；刷新即重开（无持久化）
   - 依赖：T028、T029
   - 验收：quickstart 场景 0（页面打开无 console 报错）+ 场景 4（导出文件含 `schemaVersion`/`seed`/`events` 且 `seq` 递增）人工通过
 - [ ] T031 M7 人工走查：按 `projects/werewolf/specs/001-werewolf-s0-slice/quickstart.md` 场景 0–2、4 逐项执行——场景 0 启动；场景 1 固定种子 `demo-1` 至少一局完整到终局（三身份面板行为抽查）；场景 2 观战（被刀/被放逐后输入消失、日志继续）、平票平安日继续、预言家先死夜晚直跳天亮；场景 4 导出复核；同种子 `demo-1` 重开逐字一致（§8 第 3 条人工面）

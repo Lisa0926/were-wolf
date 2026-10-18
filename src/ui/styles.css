@@ -1,0 +1,507 @@
+/* 狼人杀 S0 · 最小样式（无第三方依赖；中文排版优先，够读就行） */
+
+:root {
+  --bg: #f5f4f0;
+  --panel: #ffffff;
+  --ink: #22201c;
+  --ink-soft: #6b6459;
+  --line: #e2ded6;
+  --night: #2c3e63;
+  --day: #b4761f;
+  --vote: #7a4b8f;
+  --end: #a33a3a;
+  --death: #a33a3a;
+  --speech: #22201c;
+  --accent: #2f6b4f;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Source Han Sans SC', 'Noto Sans CJK SC', sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.app {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 20px 20px 60px;
+}
+
+/* ——————————————— 开局页 ——————————————— */
+
+.hero {
+  margin: 40px 0 24px;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 30px;
+  letter-spacing: 2px;
+}
+
+.hero-sub {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+}
+
+.start-card {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.start-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 6px;
+  flex-wrap: wrap;
+}
+
+.start-form label {
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.seed-input {
+  flex: 1 1 220px;
+  min-width: 160px;
+  padding: 9px 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+  background: #fbfaf7;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.seed-input:focus {
+  outline: 2px solid #cfe0d6;
+  border-color: var(--accent);
+}
+
+.seed-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.chip-btn {
+  padding: 5px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink);
+  background: #f1efe9;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ——————————————— 通用面板 / 按钮 ——————————————— */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.panel > h2 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.panel > h3 {
+  font-size: 14px;
+  margin: 14px 0 6px;
+  color: var(--ink-soft);
+}
+
+.hint {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.primary-btn,
+.ghost-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--accent);
+}
+
+.primary-btn {
+  color: #fff;
+  background: var(--accent);
+}
+
+.primary-btn:hover {
+  background: #275b43;
+}
+
+.ghost-btn {
+  color: var(--ink);
+  background: #fff;
+  border-color: var(--line);
+}
+
+.ghost-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.error-bar {
+  max-width: 900px;
+  margin: 0 auto 14px;
+  padding: 8px 12px;
+  color: #7d1f1f;
+  background: #fbeaea;
+  border: 1px solid #eccccc;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* ——————————————— 对局顶栏 ——————————————— */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.topbar-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.topbar h1 {
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.phase-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #fff;
+  background: var(--ink-soft);
+}
+
+.phase-badge--night_wolf,
+.phase-badge--night_seer {
+  background: var(--night);
+}
+
+.phase-badge--dawn,
+.phase-badge--day_speak {
+  background: var(--day);
+}
+
+.phase-badge--vote,
+.phase-badge--exile {
+  background: var(--vote);
+}
+
+.phase-badge--game_over {
+  background: var(--end);
+}
+
+.you-badge {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.mate-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-size: 12px;
+  color: #7d3b12;
+  background: #fbeedf;
+  border: 1px solid #f0d8bd;
+  border-radius: 999px;
+}
+
+/* ——————————————— 主布局 ——————————————— */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ——————————————— 日志流 ——————————————— */
+
+.panel--log {
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+.log-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 62vh;
+  min-height: 360px;
+  overflow-y: auto;
+  padding-right: 6px;
+  scroll-behavior: smooth;
+}
+
+.log-header {
+  margin: 14px 0 4px;
+  padding: 4px 0 4px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  border-left: 3px solid var(--ink-soft);
+  color: var(--ink-soft);
+}
+
+.log-header--night {
+  color: var(--night);
+  border-left-color: var(--night);
+}
+
+.log-header--day {
+  color: var(--day);
+  border-left-color: var(--day);
+}
+
+.log-header--vote {
+  color: var(--vote);
+  border-left-color: var(--vote);
+}
+
+.log-header--end {
+  color: var(--end);
+  border-left-color: var(--end);
+}
+
+.log-line {
+  padding: 2px 0 2px 11px;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-line--system {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.log-line--death {
+  color: var(--death);
+}
+
+.log-line--vote {
+  color: #4a3f66;
+}
+
+.log-line--speech {
+  color: var(--speech);
+}
+
+.log-line--end {
+  font-weight: 600;
+  color: var(--end);
+}
+
+/* ——————————————— 玩家表 ——————————————— */
+
+.player-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.player-table th,
+.player-table td {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.player-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.player-table tr:last-child td {
+  border-bottom: none;
+}
+
+.row-me td {
+  background: #eef5f1;
+  font-weight: 600;
+}
+
+.row-dead td {
+  color: #9b9285;
+  text-decoration: line-through;
+}
+
+.row-dead td:nth-child(3) {
+  text-decoration: none;
+  color: var(--death);
+}
+
+.check-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* ——————————————— 输入面板 ——————————————— */
+
+.panel--input {
+  border-color: #cfe0d6;
+  box-shadow: 0 0 0 3px #f2f8f4;
+}
+
+.phase-now {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.you-tag {
+  margin-left: 10px;
+  padding: 1px 8px;
+  font-size: 12px;
+  color: var(--accent);
+  background: #eef5f1;
+  border-radius: 999px;
+}
+
+.prompt {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.target-btn {
+  padding: 10px 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ink);
+  background: #fbfaf7;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.target-btn:hover {
+  border-color: var(--accent);
+  background: #eef5f1;
+  color: var(--accent);
+}
+
+.speech-box {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.6;
+  color: var(--ink);
+  background: #fbfaf7;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.speech-box:focus {
+  outline: 2px solid #cfe0d6;
+  border-color: var(--accent);
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.panel--waiting,
+.panel--spectator {
+  color: var(--ink-soft);
+}
+
+.panel--spectator {
+  border-color: #e6d2d2;
+  background: #fdf7f7;
+}
+
+.panel--spectator h2 {
+  color: var(--death);
+}
+
+/* ——————————————— 终局结算 ——————————————— */
+
+.panel--settlement {
+  border-color: #e6d2d2;
+}
+
+.settlement-winner {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--end);
+}
+
+.panel--settlement .primary-btn {
+  margin-top: 14px;
+}
