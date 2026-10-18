@@ -168,13 +168,13 @@ description: "狼人杀 S0 垂直切片实现任务清单（依 plan 里程碑 M
 **FR/套件**: FR-002、FR-008（策略面）；`tests/ai.test.ts`（M5 里程碑单测）。
 **依赖**: M3 + M4 双完成（`VisibleView` 类型 + `claim` 事件）。
 
-- [ ] T020 先写测试（红）AI 策略于 `projects/werewolf/tests/ai.test.ts`（夹具 `VisibleView` × 决策断言，规则 §5 策略表逐行）：狼——夜刀只从存活**好人**选、投票不投队友、白天伪装村民模板句、被查杀则反驳；预言家——只从**未验过**的存活者中验、首个白天跳身份（`speak` 带 `claim {kind:'seer-claim', target, result}`）公布最新查验（金水/查杀）、有存活查杀投查杀否则随机；村民——模板句并站边跳出的预言家、投票同预言家逻辑；一切随机仅经 `req.rng`（同视图 + 同 rng 状态 → 同决策）；`deciderFor(role)` 之外不读任何输入
+- [x] T020 先写测试（红）AI 策略于 `projects/werewolf/tests/ai.test.ts`（夹具 `VisibleView` × 决策断言，规则 §5 策略表逐行）：狼——夜刀只从存活**好人**选、投票不投队友、白天伪装村民模板句、被查杀则反驳；预言家——只从**未验过**的存活者中验、首个白天跳身份（`speak` 带 `claim {kind:'seer-claim', target, result}`）公布最新查验（金水/查杀）、有存活查杀投查杀否则随机；村民——模板句并站边跳出的预言家、投票同预言家逻辑；一切随机仅经 `req.rng`（同视图 + 同 rng 状态 → 同决策）；`deciderFor(role)` 之外不读任何输入
   - 依赖：T017、T019
   - 验收：`pnpm vitest run tests/ai.test.ts` 失败（红）
-- [ ] T021 实现模板句于 `projects/werewolf/src/ai/speech-templates.ts`（中文模板：伪装村民 / 跳预言家金水·查杀 / 被查杀反驳 / 村民站边）
+- [x] T021 实现模板句于 `projects/werewolf/src/ai/speech-templates.ts`（中文模板：伪装村民 / 跳预言家金水·查杀 / 被查杀反驳 / 村民站边）
   - 依赖：T020
   - 验收：模板函数被 T022 的 decider 消费，断言随 T022 转绿
-- [ ] T022 实现 `projects/werewolf/src/ai/decider.ts`：`deciderFor(role)`（`DecisionRequest → Action`，data-model §7；纯函数，随机仅经 `req.rng`，ai/ 不 import 引擎内部状态、不读 `eventLog`）
+- [x] T022 实现 `projects/werewolf/src/ai/decider.ts`：`deciderFor(role)`（`DecisionRequest → Action`，data-model §7；纯函数，随机仅经 `req.rng`，ai/ 不 import 引擎内部状态、不读 `eventLog`）
   - 依赖：T021
   - 验收：`tests/ai.test.ts` 全绿（M5 ✓）
 
@@ -186,16 +186,16 @@ description: "狼人杀 S0 垂直切片实现任务清单（依 plan 里程碑 M
 **独立验收**: 同 seed ×100 整局事件日志全等；异 seed 局不同；`Math.random` 自锁扫描过；全部套件复跑绿。
 **FR/套件**: FR-010 / SC-003；T6 `reproducibility`。
 
-- [ ] T023 先写测试（红）复现与自锁于 `projects/werewolf/tests/reproducibility.test.ts`（FR-010/SC-003；§8 第 3 条）：同 seed（含空串）autoplay 整局 ×100 次，`JSON.stringify(exportGame())` 逐字节全等；异 seed 两局不同；自锁——扫描 `src/engine` 与 `src/ai` 源码无 `Math.random` 字面（硬约束 2 自执行，plan 测试布局「自锁测试并入 T6」）
+- [x] T023 先写测试（红）复现与自锁于 `projects/werewolf/tests/reproducibility.test.ts`（FR-010/SC-003；§8 第 3 条）：同 seed（含空串）autoplay 整局 ×100 次，`JSON.stringify(exportGame())` 逐字节全等；异 seed 两局不同；自锁——扫描 `src/engine` 与 `src/ai` 源码无 `Math.random` 字面（硬约束 2 自执行，plan 测试布局「自锁测试并入 T6」）
   - 依赖：T022
   - 验收：`pnpm vitest run tests/reproducibility.test.ts` 失败（红，autoplay 未实现）
-- [ ] T024 实现无头驱动于 `projects/werewolf/tests/helpers/autoplay.ts`：驱动循环薄实现（research D5，约 10 行）——`pendingDecision` 行动者（含真人座位，测试中由 decider 代打以保证确定性）→ `deciderFor` → `dispatch`；dawn/exile 自动 `confirm`；直到 game_over；返回 Engine
+- [x] T024 实现无头驱动于 `projects/werewolf/tests/helpers/autoplay.ts`：驱动循环薄实现（research D5，约 10 行）——`pendingDecision` 行动者（含真人座位，测试中由 decider 代打以保证确定性）→ `deciderFor` → `dispatch`；dawn/exile 自动 `confirm`；直到 game_over；返回 Engine
   - 依赖：T023
   - 验收：`tests/reproducibility.test.ts` 全绿（T6 ✓，§8 第 3 条 ✓）
-- [ ] T025 补「仅凭事件重建时间线」断言到 `projects/werewolf/tests/events.test.ts`（SC-004）：autoplay 整局的 `exportGame().events` 按序重建整局可见叙事（谁说了什么、投了谁、谁何时死、何时终局），断言无信息缺失
+- [x] T025 补「仅凭事件重建时间线」断言到 `projects/werewolf/tests/events.test.ts`（SC-004）：autoplay 整局的 `exportGame().events` 按序重建整局可见叙事（谁说了什么、投了谁、谁何时死、何时终局），断言无信息缺失
   - 依赖：T024
   - 验收：`tests/events.test.ts` 全绿（T7 全绿，含 M4 留下的整局部分）
-- [ ] T026 M6 检查点：`projects/werewolf/` 下 `pnpm test` 全量复跑
+- [x] T026 M6 检查点：`projects/werewolf/` 下 `pnpm test` 全量复跑
   - 依赖：T025
   - 验收：9 个测试文件（7 套件 + rng + ai）全部通过，含 T1 的 1000 seed 统计复跑（plan M6 验收「1000 seed 统计过」）
 

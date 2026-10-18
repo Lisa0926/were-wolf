@@ -6,8 +6,9 @@ import {
   exportGame,
   type GameRecord,
 } from '../src/engine/events';
-import type { GameEvent } from '../src/engine/events';
-import type { Action, Role } from '../src/engine/types';
+import type { GameEvent, VictoryReason, VoteOutcome } from '../src/engine/events';
+import type { Action, Claim, Faction, Role } from '../src/engine/types';
+import { autoplay } from './helpers/autoplay';
 
 /**
  * T7 事件契约序列化（tasks T018–T019；FR-009；contracts/event-stream.md §1、§3）
@@ -414,5 +415,327 @@ describe('T7 事件不含墙钟时间字段（SC-003 复现承诺的前提）', 
     const numbers = collectNumbers(record);
     expect(numbers.length).toBeGreaterThan(0);
     expect(numbers.every((n) => Number.isFinite(n) && Math.abs(n) < 1e12)).toBe(true);
+  });
+});
+
+// —————————————————————— T025（M6）：仅凭事件重建整局时间线（SC-004） ——————————————————————
+
+/**
+ * T025 口径（tasks T025；SC-004）：把 autoplay 整局的 `exportGame().events`
+ * 当作**唯一数据源**重建时间线——不读引擎 state、不读 eventLog——断言
+ * 「谁在哪个白天说了什么 / 投了谁 / 谁何时死 / 何时终局」全部可还原、无信息缺失。
+ *
+ * 最强的一条是「当轮存活集合」由死亡事件反推后逐轮精确比对：
+ *   当轮发言者/投票者 = 1..6 −（round ≤ r 的夜刀死者）−（round < r 的放逐死者）
+ * 若事件流少任何一条发言/投票/死亡，这个集合立刻就与断言不符。
+ */
+
+interface DeathRow {
+  seq: number;
+  round: number;
+  seat: number;
+  role: Role;
+  cause: 'night-kill' | 'exile';
+}
+
+interface SpeechRow {
+  round: number;
+  seat: number;
+  text: string;
+  skipped: boolean;
+  claim?: Claim;
+}
+
+interface VoteRow {
+  round: number;
+  voter: number;
+  target: number | 'abstain';
+}
+
+interface VoteResultRow {
+  round: number;
+  tally: Record<number, number>;
+  abstainCount: number;
+  exiled: number | null;
+  outcome: VoteOutcome;
+}
+
+interface Timeline {
+  seed: string;
+  board: Role[];
+  nights: number[];
+  wolfKills: Map<number, number>;
+  seerChecks: Array<{ round: number; target: number; result: 'good' | 'werewolf' }>;
+  deaths: DeathRow[];
+  speeches: SpeechRow[];
+  votes: VoteRow[];
+  results: VoteResultRow[];
+  victory?: { winner: Faction; reason: VictoryReason; round: number };
+  finalTable?: Array<{ seat: number; role: Role; alive: boolean; isHuman: boolean }>;
+}
+
+/** 只吃事件数组：整局时间线重建（SC-004 的"可重建"落点） */
+function buildTimeline(events: readonly GameEvent[]): Timeline {
+  const t: Timeline = {
+    seed: '',
+    board: [],
+    nights: [],
+    wolfKills: new Map(),
+    seerChecks: [],
+    deaths: [],
+    speeches: [],
+    votes: [],
+    results: [],
+  };
+  for (const ev of events) {
+    switch (ev.type) {
+      case 'game_started':
+        t.seed = ev.seed;
+        t.board = [...ev.board];
+        break;
+      case 'night_started':
+        t.nights.push(ev.round);
+        break;
+      case 'wolf_kill_decided':
+        t.wolfKills.set(ev.round, ev.target);
+        break;
+      case 'seer_check_completed':
+        t.seerChecks.push({ round: ev.round, target: ev.target, result: ev.result });
+        break;
+      case 'player_died':
+        t.deaths.push({
+          seq: ev.seq,
+          round: ev.round,
+          seat: ev.seat,
+          role: ev.revealedRole,
+          cause: ev.cause,
+        });
+        break;
+      case 'speech':
+        t.speeches.push({
+          round: ev.round,
+          seat: ev.seat,
+          text: ev.text,
+          skipped: ev.skipped,
+          ...(ev.claim ? { claim: ev.claim } : {}),
+        });
+        break;
+      case 'vote_cast':
+        t.votes.push({ round: ev.round, voter: ev.voter, target: ev.target });
+        break;
+      case 'vote_result':
+        t.results.push({
+          round: ev.round,
+          tally: { ...ev.tally },
+          abstainCount: ev.abstainCount,
+          exiled: ev.exiled,
+          outcome: ev.outcome,
+        });
+        break;
+      case 'victory':
+        t.victory = { winner: ev.winner, reason: ev.reason, round: ev.round };
+        break;
+      case 'game_over':
+        t.finalTable = ev.finalTable.map((p) => ({ ...p }));
+        break;
+      case 'roles_dealt':
+        // 发牌表（end 可见性）不进公开时间线：终局身份由 game_over.finalTable 还原
+        break;
+    }
+  }
+  return t;
+}
+
+/**
+ * 当轮发言/投票的存活集合（纯事件反推）：
+ * 夜刀当轮结算（round ≤ r 死），放逐在投票之后（round < r 才算已死）。
+ */
+function aliveAt(deaths: readonly DeathRow[], round: number): number[] {
+  const alive: number[] = [];
+  for (let seat = 1; seat <= 6; seat++) {
+    const dead = deaths.some((d) =>
+      d.seat === seat && (d.cause === 'night-kill' ? d.round <= round : d.round < round),
+    );
+    if (!dead) alive.push(seat);
+  }
+  return alive;
+}
+
+function groupByRound<T extends { round: number }>(rows: readonly T[]): Map<number, T[]> {
+  const out = new Map<number, T[]>();
+  for (const row of rows) {
+    const list = out.get(row.round) ?? [];
+    list.push(row);
+    out.set(row.round, list);
+  }
+  return out;
+}
+
+const T025_SEEDS = ['events-autoplay-1', 'demo-1', 'repro-fixed', ''] as const;
+const T025_GAMES = T025_SEEDS.map((seed) => ({ seed, engine: autoplay(seed) }));
+const T025_TIMELINES = T025_GAMES.map((g) => buildTimeline(g.engine.exportGame().events));
+
+describe('T025 仅凭事件重建整局时间线（SC-004）', () => {
+  it('事件序完整：seq 1..N 连续、round 非递减、game_started 开头、victory→game_over 收尾', () => {
+    T025_GAMES.forEach((game, i) => {
+      const events = game.engine.exportGame().events;
+      const timeline = T025_TIMELINES[i]!;
+      expect(timeline.seed).toBe(T025_SEEDS[i]);
+      expect(timeline.board).toHaveLength(6);
+      expect(events[0]!.type).toBe('game_started');
+      expect(events[events.length - 1]!.type).toBe('game_over');
+      expect(events.map((e) => e.seq)).toEqual(events.map((_, k) => k + 1));
+      const rounds = events.map((e) => e.round);
+      for (let k = 1; k < rounds.length; k++) {
+        expect(rounds[k]!).toBeGreaterThanOrEqual(rounds[k - 1]!);
+      }
+      const victorySeq = events.find((e) => e.type === 'victory')!.seq;
+      expect(events[events.length - 1]!.seq).toBe(victorySeq + 1);
+      expect(timeline.finalTable).toHaveLength(6);
+    });
+  });
+
+  it('每轮恰好一条 night_started（round = 1..maxRound），且当夜必有狼刀', () => {
+    for (const timeline of T025_TIMELINES) {
+      expect(timeline.nights.length).toBeGreaterThan(0);
+      expect(timeline.nights).toEqual(timeline.nights.map((_, k) => k + 1));
+      for (const round of timeline.nights) {
+        expect(timeline.wolfKills.has(round), `round ${round} 缺 wolf_kill_decided`).toBe(true);
+      }
+      // 每个刀口都对应一条当轮夜刀死亡（无信息缺失）
+      for (const [round, target] of timeline.wolfKills) {
+        expect(
+          timeline.deaths.some((d) => d.round === round && d.seat === target && d.cause === 'night-kill'),
+          `round ${round} 刀口 ${target} 没有对应死亡`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('发言重建：每个白天「当轮存活者」恰好各一条 speech（含跳过），按座次升序、无遗漏无重复', () => {
+    for (const timeline of T025_TIMELINES) {
+      const byRound = groupByRound(timeline.speeches);
+      expect(byRound.size).toBeGreaterThan(0);
+      for (const [round, rows] of byRound) {
+        const expected = aliveAt(timeline.deaths, round);
+        expect(rows.map((r) => r.seat), `round ${round} 发言座次不完整`).toEqual(expected);
+        expect(new Set(rows.map((r) => r.seat)).size).toBe(rows.length);
+        // 白天一定走到投票（有发言就有计票）
+        expect(timeline.results.some((r) => r.round === round), `round ${round} 有发言无计票`).toBe(true);
+      }
+    }
+  });
+
+  it('投票重建：当轮存活者各投一票（可弃），票面重算与 tally/abstainCount/outcome/exiled 完全一致', () => {
+    for (const timeline of T025_TIMELINES) {
+      const votesByRound = groupByRound(timeline.votes);
+      expect(votesByRound.size).toBeGreaterThan(0);
+      for (const result of timeline.results) {
+        const alive = aliveAt(timeline.deaths, result.round);
+        const rows = votesByRound.get(result.round) ?? [];
+        expect(rows.map((r) => r.voter), `round ${result.round} 投票人不完整`).toEqual(alive);
+
+        const tally: Record<number, number> = {};
+        let abstain = 0;
+        for (const row of rows) {
+          if (row.target === 'abstain') {
+            abstain++;
+          } else {
+            expect(alive, `round ${result.round} 投给了非存活者 ${row.target}`).toContain(row.target);
+            tally[row.target] = (tally[row.target] ?? 0) + 1;
+          }
+        }
+        expect(tally).toEqual(result.tally);
+        expect(abstain).toBe(result.abstainCount);
+
+        const cast = Object.values(tally).reduce((a, b) => a + b, 0);
+        expect(cast + abstain).toBe(alive.length);
+        const max = Math.max(0, ...Object.values(tally));
+        const top = Object.keys(tally)
+          .map(Number)
+          .filter((seat) => tally[seat] === max);
+        const expectedOutcome: VoteOutcome =
+          cast === 0 ? 'all-abstain' : top.length === 1 ? 'exile' : 'tie';
+        expect(result.outcome).toBe(expectedOutcome);
+        expect(result.exiled).toBe(expectedOutcome === 'exile' ? top[0] : null);
+      }
+      for (const round of votesByRound.keys()) {
+        expect(timeline.results.some((r) => r.round === round), `round ${round} 有投票无计票`).toBe(true);
+      }
+    }
+  });
+
+  it('死亡重建：夜刀死者 = 当夜刀口、放逐死者 = 当轮放逐，翻牌角色与终表一致，且与终表互补', () => {
+    for (const timeline of T025_TIMELINES) {
+      const finalTable = timeline.finalTable!;
+      for (const death of timeline.deaths) {
+        const row = finalTable.find((p) => p.seat === death.seat)!;
+        expect(row.role).toBe(death.role); // 死亡即翻牌：事件里的翻牌与终表一致
+        expect(row.alive).toBe(false);
+        if (death.cause === 'night-kill') {
+          expect(timeline.wolfKills.get(death.round)).toBe(death.seat);
+        } else {
+          const result = timeline.results.find((r) => r.round === death.round)!;
+          expect(result.outcome).toBe('exile');
+          expect(result.exiled).toBe(death.seat);
+        }
+      }
+      // 同一座位不重复死亡；死亡事件的 round 非递减（谁何时死）
+      const deadSeats = timeline.deaths.map((d) => d.seat);
+      expect(new Set(deadSeats).size).toBe(deadSeats.length);
+      for (let k = 1; k < timeline.deaths.length; k++) {
+        expect(timeline.deaths[k]!.round).toBeGreaterThanOrEqual(timeline.deaths[k - 1]!.round);
+      }
+      // 终表 alive 与死亡事件严格互补（无"没记录的死亡"或"记录了还活着"）
+      for (const row of finalTable) expect(row.alive).toBe(!deadSeats.includes(row.seat));
+    }
+  });
+
+  it('发言内容可重建：未跳过必有文本、跳过必为空文本；claim 只出自真预言家且载荷为真', () => {
+    for (const timeline of T025_TIMELINES) {
+      const finalTable = timeline.finalTable!;
+      const seerSeat = finalTable.find((p) => p.role === 'seer')!.seat;
+      expect(timeline.speeches.length).toBeGreaterThan(0);
+      for (const speech of timeline.speeches) {
+        if (speech.skipped) {
+          expect(speech.text).toBe('');
+        } else {
+          expect(speech.text.length).toBeGreaterThan(0);
+        }
+        if (speech.claim) {
+          expect(speech.seat).toBe(seerSeat); // 只有真预言家会发 claim
+          const truth = finalTable.find((p) => p.seat === speech.claim!.target)!;
+          expect(speech.claim.result).toBe(truth.role === 'werewolf' ? 'werewolf' : 'good');
+        }
+      }
+      // 非预言家座位永不带 claim（狼伪装成村民、村民无信息）
+      for (const speech of timeline.speeches) {
+        if (speech.seat !== seerSeat) expect(speech.claim).toBeUndefined();
+      }
+      // 查验史：目标为他人，结果二值（预言家自己的记录可重建）
+      for (const check of timeline.seerChecks) {
+        expect(check.target).not.toBe(seerSeat);
+        expect(['good', 'werewolf']).toContain(check.result);
+      }
+    }
+  });
+
+  it('终局重建：victory 与终表存活口径一致（狼 0 → 好人胜；狼 ≥ 好 → 狼胜）', () => {
+    for (const timeline of T025_TIMELINES) {
+      const finalTable = timeline.finalTable!;
+      const wolves = finalTable.filter((p) => p.alive && p.role === 'werewolf').length;
+      const good = finalTable.filter((p) => p.alive && p.role !== 'werewolf').length;
+      const victory = timeline.victory!;
+      if (wolves === 0) {
+        expect(victory.winner).toBe('good');
+        expect(victory.reason).toBe('wolves-eliminated');
+      } else {
+        expect(wolves).toBeGreaterThanOrEqual(good);
+        expect(victory.winner).toBe('wolves');
+        expect(victory.reason).toBe('wolves-parity');
+      }
+      // 终局回合 = 最后一轮（victory.round 与最后一条 night_started 同轮或同轮放逐）
+      expect(victory.round).toBe(timeline.nights[timeline.nights.length - 1]);
+    }
   });
 });
