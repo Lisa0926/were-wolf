@@ -60,7 +60,7 @@ description: "狼人杀 S0 垂直切片实现任务清单（依 plan 里程碑 M
 
 **目的**: `projects/werewolf/` 成为可安装、可启动、可跑测试的空骨架（plan §项目结构）。
 
-- [ ] T001 创建 Vite 项目骨架于 `projects/werewolf/`：`package.json`（React 18 / Vite / Vitest / TypeScript 5，实现期取当前稳定版并 lockfile 定版；除此之外零运行时依赖）、`vite.config.ts`、`tsconfig.json`（strict）、`index.html`、`src/main.tsx`（占位渲染）、`src/{rng,engine,ai,ui}/` 与 `tests/` 目录、scripts（`dev`/`test`）
+- [x] T001 创建 Vite 项目骨架于 `projects/werewolf/`：`package.json`（React 18 / Vite / Vitest / TypeScript 5，实现期取当前稳定版并 lockfile 定版；除此之外零运行时依赖）、`vite.config.ts`、`tsconfig.json`（strict）、`index.html`、`src/main.tsx`（占位渲染）、`src/{rng,engine,ai,ui}/` 与 `tests/` 目录、scripts（`dev`/`test`）
   - 依赖：无
   - 验收：`pnpm install` 成功；`pnpm dev` 页面可打开、无 console 报错；`pnpm test`（Vitest）空跑退出码 0
 
@@ -74,13 +74,13 @@ description: "狼人杀 S0 垂直切片实现任务清单（依 plan 里程碑 M
 **独立验收**: `tests/rng.test.ts` 全绿——同 seed 序列一致、异 seed 序列不同、shuffle 是排列且不改入参。
 **FR/套件**: FR-001/FR-010 支撑；`tests/rng.test.ts`（M1 里程碑单测）。
 
-- [ ] T002 先写测试（红）到 `projects/werewolf/tests/rng.test.ts`：同 seed（如 `createRng('lisa')`）前 100 个 `next()` 两次调用逐个相等；异 seed 序列不同；空串 seed 稳定映射不抛错；`int(min, max)` 落在 `[min, max)`；`pick` 空数组抛错；`shuffle` 返回新数组、元素为原多重集的排列、同 seed 结果锁定
+- [x] T002 先写测试（红）到 `projects/werewolf/tests/rng.test.ts`：同 seed（如 `createRng('lisa')`）前 100 个 `next()` 两次调用逐个相等；异 seed 序列不同；空串 seed 稳定映射不抛错；`int(min, max)` 落在 `[min, max)`；`pick` 空数组抛错；`shuffle` 返回新数组、元素为原多重集的排列、同 seed 结果锁定
   - 依赖：T001
   - 验收：`pnpm vitest run tests/rng.test.ts` 失败（红，模块不存在）
-- [ ] T003 实现 Fisher–Yates 洗牌于 `projects/werewolf/src/rng/shuffle.ts`（返回新数组、不修改入参）
+- [x] T003 实现 Fisher–Yates 洗牌于 `projects/werewolf/src/rng/shuffle.ts`（返回新数组、不修改入参）
   - 依赖：T002
   - 验收：`rng.test.ts` 中 shuffle 相关断言转绿
-- [ ] T004 实现 `projects/werewolf/src/rng/rng.ts`：`Rng` 接口（`next`/`int`/`pick`/`shuffle`，契约 `contracts/engine-api.md` §4）+ FNV-1a 字符串哈希（空串/任意字符稳定）+ mulberry32 + `createRng` 组装
+- [x] T004 实现 `projects/werewolf/src/rng/rng.ts`：`Rng` 接口（`next`/`int`/`pick`/`shuffle`，契约 `contracts/engine-api.md` §4）+ FNV-1a 字符串哈希（空串/任意字符稳定）+ mulberry32 + `createRng` 组装
   - 依赖：T003
   - 验收：`tests/rng.test.ts` 全绿；`src/rng` 无第三方 import、无 `Math.random`
 
@@ -94,37 +94,37 @@ description: "狼人杀 S0 垂直切片实现任务清单（依 plan 里程碑 M
 **独立验收**: T1–T4 四套件全绿（身份分配/昼夜流转/投票三核心状态机 + 胜负全边界）。
 **FR/套件**: FR-001~FR-007；T1 `identity` / T2 `phases` / T3 `voting` / T4 `victory`。
 
-- [ ] T005 先写测试（红）身份分配于 `projects/werewolf/tests/identity.test.ts`（FR-001；§8 第 4 条）。口径先行后写数：1000 个不同 seed 各发一次牌 → 每局角色多重集恰为狼 2 / 预言家 1 / 村民 3（BOARD）；每座位拿到各角色频率与期望（2/6、1/6、3/6）偏差 ≤5 个百分点；真人座位恰 1 个且随 seed 变化（分布均匀，同样 ±5 个百分点容差）
+- [x] T005 先写测试（红）身份分配于 `projects/werewolf/tests/identity.test.ts`（FR-001；§8 第 4 条）。口径先行后写数：1000 个不同 seed 各发一次牌 → 每局角色多重集恰为狼 2 / 预言家 1 / 村民 3（BOARD）；每座位拿到各角色频率与期望（2/6、1/6、3/6）偏差 ≤5 个百分点；真人座位恰 1 个且随 seed 变化（分布均匀，同样 ±5 个百分点容差）
   - 依赖：T004
   - 验收：`pnpm vitest run tests/identity.test.ts` 失败（红）
-- [ ] T006 实现类型层：`projects/werewolf/src/engine/types.ts`（`Role`/`Faction`/`BOARD`（狼2/预言家1/村民3）/`factionOf`/`PlayerState`（seat 1–6、发牌后 role 不可变、恰 1 真人、`death?{cause:'night-kill'|'exile', round}`）/`Phase` 8 态与规则 §4.1 一致不增不减/`GameState`/`Action` 8 种/`EngineError`（code：`WRONG_PHASE`/`NOT_YOUR_TURN`/`ILLEGAL_TARGET`/`GAME_OVER`），对照 data-model §1–§2）+ `projects/werewolf/src/engine/events.ts` 类型与构造器（9 类 GameEvent、公共字段 `seq`/`round`/`visibility`、`Claim`，对照 `contracts/event-stream.md` §1）
+- [x] T006 实现类型层：`projects/werewolf/src/engine/types.ts`（`Role`/`Faction`/`BOARD`（狼2/预言家1/村民3）/`factionOf`/`PlayerState`（seat 1–6、发牌后 role 不可变、恰 1 真人、`death?{cause:'night-kill'|'exile', round}`）/`Phase` 8 态与规则 §4.1 一致不增不减/`GameState`/`Action` 8 种/`EngineError`（code：`WRONG_PHASE`/`NOT_YOUR_TURN`/`ILLEGAL_TARGET`/`GAME_OVER`），对照 data-model §1–§2）+ `projects/werewolf/src/engine/events.ts` 类型与构造器（9 类 GameEvent、公共字段 `seq`/`round`/`visibility`、`Claim`，对照 `contracts/event-stream.md` §1）
   - 依赖：T005（先红）
   - 验收：`tsc` strict 编译通过；本任务只落类型与构造器，无行为逻辑
-- [ ] T007 实现 Engine 门面与转移 1：`projects/werewolf/src/engine/engine.ts`（`createGame(seed)`/`state` 只读快照/`dispatch`（合法返回事件数组，非法返回 `Err<EngineError>` 且状态不变、不产事件）/`pendingDecision`/`eventLog`，契约 §1–§2）+ `projects/werewolf/src/engine/transition.ts` 转移 1（`startGame`：`rng.shuffle(BOARD)` 发牌、真人座位随机、round=1 → night_wolf；产出 `game_started` → `night_started` → `roles_dealt`（隐藏））
+- [x] T007 实现 Engine 门面与转移 1：`projects/werewolf/src/engine/engine.ts`（`createGame(seed)`/`state` 只读快照/`dispatch`（合法返回事件数组，非法返回 `Err<EngineError>` 且状态不变、不产事件）/`pendingDecision`/`eventLog`，契约 §1–§2）+ `projects/werewolf/src/engine/transition.ts` 转移 1（`startGame`：`rng.shuffle(BOARD)` 发牌、真人座位随机、round=1 → night_wolf；产出 `game_started` → `night_started` → `roles_dealt`（隐藏））
   - 依赖：T006
   - 验收：`tests/identity.test.ts` 全绿（T1 ✓，§8 第 4 条 ✓）
-- [ ] T008 先写测试（红）夜晚与流转断言追加到 `projects/werewolf/tests/phases.test.ts`（FR-002/FR-006；§8 第 5 条前半）：`wolfKill` 目标死亡或为狼队友 → `ILLEGAL_TARGET` 且状态不变；阶段不符提交 → `WRONG_PHASE`；`seerCheck` 验自己 → `ILLEGAL_TARGET`，重复验同一人合法；查验结果为 `good|werewolf` 二值；预言家已死 → night_wolf 直跳 dawn（FR-006）；进入 dawn 时结算夜刀死亡（`player_died` 含 `revealedRole`，死亡即翻牌）；dawn `confirm` → day_speak
+- [x] T008 先写测试（红）夜晚与流转断言追加到 `projects/werewolf/tests/phases.test.ts`（FR-002/FR-006；§8 第 5 条前半）：`wolfKill` 目标死亡或为狼队友 → `ILLEGAL_TARGET` 且状态不变；阶段不符提交 → `WRONG_PHASE`；`seerCheck` 验自己 → `ILLEGAL_TARGET`，重复验同一人合法；查验结果为 `good|werewolf` 二值；预言家已死 → night_wolf 直跳 dawn（FR-006）；进入 dawn 时结算夜刀死亡（`player_died` 含 `revealedRole`，死亡即翻牌）；dawn `confirm` → day_speak
   - 依赖：T007
   - 验收：新增断言跑为失败（红）
-- [ ] T009 实现夜刀结算与即时判定 + 转移 2/3/4：`projects/werewolf/src/engine/settle.ts`（夜刀死亡结算（死亡即翻牌，无救治）+ `checkVictory` 存活口径（狼=0 → 好人胜 `wolves-eliminated`；狼 ≥ 好 → 狼胜 `wolves-parity`））+ `transition.ts` 转移 2（出口分支：预言家存活 → night_seer；已死 → dawn）、转移 3（→ dawn 并结算）、转移 4（`confirm` → day_speak）
+- [x] T009 实现夜刀结算与即时判定 + 转移 2/3/4：`projects/werewolf/src/engine/settle.ts`（夜刀死亡结算（死亡即翻牌，无救治）+ `checkVictory` 存活口径（狼=0 → 好人胜 `wolves-eliminated`；狼 ≥ 好 → 狼胜 `wolves-parity`））+ `transition.ts` 转移 2（出口分支：预言家存活 → night_seer；已死 → dawn）、转移 3（→ dawn 并结算）、转移 4（`confirm` → day_speak）
   - 依赖：T008
   - 验收：T008 断言转绿
-- [ ] T010 先写测试（红）白天发言与流转断言追加到 `projects/werewolf/tests/phases.test.ts`（FR-004/FR-007 引擎口径；§8 第 5 条后半）：`speech.order` = 存活座位升序、游标按序推进；`speak` 空文本合法、`skip` 合法；行动者不符 → `NOT_YOUR_TURN`；死者不出现在发言 order，`pendingDecision` 永不指向死者（FR-007 引擎面）；全员说完 → vote；连续多轮平票循环不卡死（此条待 T015 后转绿）
+- [x] T010 先写测试（红）白天发言与流转断言追加到 `projects/werewolf/tests/phases.test.ts`（FR-004/FR-007 引擎口径；§8 第 5 条后半）：`speech.order` = 存活座位升序、游标按序推进；`speak` 空文本合法、`skip` 合法；行动者不符 → `NOT_YOUR_TURN`；死者不出现在发言 order，`pendingDecision` 永不指向死者（FR-007 引擎面）；全员说完 → vote；连续多轮平票循环不卡死（此条待 T015 后转绿）
   - 依赖：T009
   - 验收：新增断言跑为失败（红）
-- [ ] T011 实现转移 5（day_speak 游标推进，全员说完 → vote）于 `projects/werewolf/src/engine/transition.ts`，产出 `speech` 事件（含 `skipped` 标记）
+- [x] T011 实现转移 5（day_speak 游标推进，全员说完 → vote）于 `projects/werewolf/src/engine/transition.ts`，产出 `speech` 事件（含 `skipped` 标记）
   - 依赖：T010
   - 验收：发言相关断言转绿
-- [ ] T012 先写测试（红）投票于 `projects/werewolf/tests/voting.test.ts`（FR-005；§8 第 6 条）：`castVote` 可投任意存活者**含自己**；`abstain` 合法且不计票；收齐存活者数才计票；得票 max 唯一 → 放逐并翻牌；平票 → `outcome='tie'` 无人放逐；全员弃票 → `outcome='all-abstain'` 平安日（与平票同路）；`vote_cast` ×存活数 + 收齐时 `vote_result`（`tally`/`abstainCount`/`exiled`/`outcome`）
+- [x] T012 先写测试（红）投票于 `projects/werewolf/tests/voting.test.ts`（FR-005；§8 第 6 条）：`castVote` 可投任意存活者**含自己**；`abstain` 合法且不计票；收齐存活者数才计票；得票 max 唯一 → 放逐并翻牌；平票 → `outcome='tie'` 无人放逐；全员弃票 → `outcome='all-abstain'` 平安日（与平票同路）；`vote_cast` ×存活数 + 收齐时 `vote_result`（`tally`/`abstainCount`/`exiled`/`outcome`）
   - 依赖：T011
   - 验收：`pnpm vitest run tests/voting.test.ts` 失败（红）
-- [ ] T013 实现转移 6 与放逐结算：`projects/werewolf/src/engine/transition.ts`（按座次收票、齐票计票）+ `projects/werewolf/src/engine/settle.ts`（计票：max 唯一放逐；tie / all-abstain 无人放逐）
+- [x] T013 实现转移 6 与放逐结算：`projects/werewolf/src/engine/transition.ts`（按座次收票、齐票计票）+ `projects/werewolf/src/engine/settle.ts`（计票：max 唯一放逐；tie / all-abstain 无人放逐）
   - 依赖：T012
   - 验收：`tests/voting.test.ts` 全绿（T3 ✓，§8 第 6 条 ✓）
-- [ ] T014 先写测试（红）胜负判定于 `projects/werewolf/tests/victory.test.ts`（FR-003；§8 第 7 条）：夜刀 × 放逐 × 狼胜/好人胜全部边界；复演规则 §2 推演——狼最快 1 夜 1 日（夜刀 1 好 → 2狼3好，放逐 1 好 → 2狼2好 → 狼胜）、好人最快 2 夜 2 日（终局 0 狼 → 好人胜）；判定即时性（每次 `player_died` 结算后立即判定，触发即 game_over 不进下一阶段）；exile `confirm` 未触发判定 → night_wolf（round+1）；`victory`（winner/reason）+ `game_over`（finalTable）事件
+- [x] T014 先写测试（红）胜负判定于 `projects/werewolf/tests/victory.test.ts`（FR-003；§8 第 7 条）：夜刀 × 放逐 × 狼胜/好人胜全部边界；复演规则 §2 推演——狼最快 1 夜 1 日（夜刀 1 好 → 2狼3好，放逐 1 好 → 2狼2好 → 狼胜）、好人最快 2 夜 2 日（终局 0 狼 → 好人胜）；判定即时性（每次 `player_died` 结算后立即判定，触发即 game_over 不进下一阶段）；exile `confirm` 未触发判定 → night_wolf（round+1）；`victory`（winner/reason）+ `game_over`（finalTable）事件
   - 依赖：T013
   - 验收：`pnpm vitest run tests/victory.test.ts` 失败（红）
-- [ ] T015 实现转移 7 于 `projects/werewolf/src/engine/transition.ts`：exile `confirm` → `checkVictory` → night_wolf（round+1，产出 `night_started`）或 game_over（产出 `victory` → `game_over`）
+- [x] T015 实现转移 7 于 `projects/werewolf/src/engine/transition.ts`：exile `confirm` → `checkVictory` → night_wolf（round+1，产出 `night_started`）或 game_over（产出 `victory` → `game_over`）
   - 依赖：T014
   - 验收：`tests/victory.test.ts` 全绿（T4 ✓，§8 第 7 条 ✓）；**M2 检查点**：T1–T4 四套件全绿（含 phases 的平票循环断言转绿，§8 第 5 条 ✓）
 
