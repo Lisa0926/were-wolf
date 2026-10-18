@@ -1,6 +1,6 @@
 # Feature Specification: 狼人杀 S0 垂直切片（1 真人 + 5 AI 完整一局）
 
-**Feature Branch**: (无 git 仓库，O09 未定；本特性不依赖分支)
+**Feature Branch**: (项目仓库 `projects/werewolf/` 已建（D40）；S0 单线推进，不建特性分支)
 
 **Created**: 2026-10-18
 
