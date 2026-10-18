@@ -39,6 +39,12 @@ pnpm test      # Vitest（状态机三核心 + 信息隔离）
 pnpm build     # 产物构建
 ```
 
+> ⚠️ **本机 pnpm 说明**（2026-10-18）：全局 pnpm 已损坏（`~/Library/pnpm/bin`
+> 无本体）。可用 pnpm 10.34.7 已装在工作区：
+> `export PATH="$HOME/DSH_Lisa/.tools/node_modules/.bin:$PATH"`；
+> npm 缓存已重定向到 `~/DSH_Lisa/.npm-cache`。急用时可直接
+> `node_modules/.bin/vitest run` 跑测试。
+
 ## 硬约束（违反即返工）
 
 1. `engine/` 不得 import react / DOM —— 引擎必须能被 Vitest 裸驱动。

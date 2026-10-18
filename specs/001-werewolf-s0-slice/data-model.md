@@ -58,6 +58,8 @@ interface GameState {
   seed: string;                  // 本局种子（导出/复现用）
   speech: { day: number; order: number[]; cursor: number };  // 本轮发言：存活座次序列 + 游标
   votes: Partial<Record<seat, seat | 'abstain'>>;            // 本轮已收选票
+  nightKill?: seat;              // 本轮刀口工作数据（转移 2 决定 → 转移 3 进 dawn 时结算消费；
+                                 // 与 votes 同级的"本轮数据，历史在日志"模式。实现期补，2026-10-18）
   winner?: { faction: Faction; reason: 'wolves-eliminated' | 'wolves-parity' };
 }
 ```
@@ -91,6 +93,11 @@ type Action =
   | { type: 'abstain' }
   | { type: 'confirm' };                     // dawn / exile 的推进确认
 ```
+
+> **实现期补充（2026-10-18）**：speak / skip / castVote / abstain 四种动作
+> 实际带可选 `actor?: seat` 字段——否则 `NOT_YOUR_TURN` 校验在结构上
+> 不可判定（契约 §3 要求该错误码）。省略时引擎按 `pendingDecision`
+> 的行动者处理，向后兼容。
 
 非法动作（未通过前置校验、阶段不符、行动者不符）→ 返回类型化错误
 `EngineError { code, message }`，**状态不变、不产生事件**。
