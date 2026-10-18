@@ -27,6 +27,15 @@ interface Engine {
       这是 UI 决定"渲染哪种输入面板 / 是否自动推进 AI"的唯一依据。 */
   readonly pendingDecision: PendingDecision | null;
 
+  /** 当前待决策的请求（kind / view / legalTargets / rng）；无待决策
+      （idle / dawn / exile / game_over）时为 null。
+      - 行动者解析：pendingDecision.actor 是座位就用它；是 'wolf-team'
+        则取**存活狼中座位最小者**（确定性选择，research D6）；
+      - rng 是 startGame 时创建的**唯一**随机流，随请求借出（research D3）：
+        本方法不推进它、也不派生新流，decider 仅在本次决策内消费。
+      这是驱动层构造 DecisionRequest 的唯一入口。 */
+  decisionRequest(): DecisionRequest | null;
+
   /** 某座位的可见信息视图（人类渲染与 AI 决策共用，data-model §6）。 */
   viewFor(seat: number): VisibleView;
 
@@ -54,11 +63,17 @@ interface PendingDecision {
 驱动循环（ui hook 与测试 helper 各持一份薄实现，~10 行）：
 
 ```
-while (pendingDecision 且行动者为 AI)  → decider({view, legalTargets, rng 借出}) → dispatch
-pendingDecision 行动者为真人          → 渲染输入面板，等待 dispatch
+while (engine.pendingDecision !== null):
+    行动者为真人 → 渲染输入面板，等待 dispatch（不调 decider）
+    行动者为 AI  → req = engine.decisionRequest()   // rng 随请求借出 = 引擎唯一流
+                   dispatch(decider(req))
 pendingDecision 为 null（dawn/exile） → 自动 confirm（无人工确认交互）
 phase = game_over                    → 终局结算渲染
 ```
+
+> 实施期补充（T034，2026-10-18）：`decisionRequest()` 已落地，是驱动层
+> 构造 `DecisionRequest` 的**唯一入口**——`rng` 由引擎借出，驱动层不得
+> 自建随机流（research D3 单流口径）。
 
 节奏（规则 §6）：纯 AI 阶段的"可读延时"由 **ui 层 setTimeout** 实现，
 engine 恒为同步即时——可测性与复现不受延时影响。

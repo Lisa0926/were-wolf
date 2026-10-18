@@ -49,6 +49,14 @@
   - ai/ 自建 rng（两条流，违反规则，弃）；
   - rng 状态存进 GameState 并序列化（为存档设计，S0 无持久化，YAGNI，弃）。
 
+> **实施期补充（T034，2026-10-18）**：「rng 随请求借出」已由
+> `Engine.decisionRequest(): DecisionRequest | null` 落地——无待决策
+> （idle / dawn / exile / game_over）返回 null；`actor = 'wolf-team'` 时
+> 取**存活狼中座位最小者**视角（确定性）；返回的 `rng` 就是 startGame
+> 创建的唯一流，方法本身不推进它、也不派生新流。测试驱动
+> `tests/helpers/autoplay.ts` 与将来的 `ui/useGame.ts` 都走这一入口，
+> 「两条流」的风险由此关闭。
+
 ## D4. 事件可见性：全量日志 + 按座位投影，UI 与 AI 走同一投影
 
 - **决策**: 引擎只维护一份**完整事件日志**（含夜间刀口/查验等隐藏事实，

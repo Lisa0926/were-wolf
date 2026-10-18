@@ -240,6 +240,14 @@ description: "狼人杀 S0 垂直切片实现任务清单（依 plan 里程碑 M
 
 ---
 
+## 补充任务（实施期发现）
+
+- [x] T034 补齐「引擎随请求借出 rng」（contracts/engine-api.md §2 的承诺、research D3 的单流口径）——实施 T024 时发现 `Engine` 无此入口，驱动层只能临时自建派生流；经 Lisa 裁定选方案 A：新增 `Engine.decisionRequest(): DecisionRequest | null`（无待决策 → null；`actor='wolf-team'` 取存活狼中座位最小者；`rng` 即 startGame 创建的唯一流，不派生新流），`tests/helpers/autoplay.ts` 改用该入口、驱动层不再自建随机流
+  - 依赖：T026
+  - 验收：`tests/decision-request.test.ts` 全绿（null 语义 / 与 pendingDecision 等价 / view 指向行动者 / wolf-team 解析 / 单流证据）；全量套件复跑绿；`tsc --noEmit` 0 错误
+
+---
+
 ## 依赖与执行顺序
 
 ### 阶段依赖（里程碑链，与 plan 一致）

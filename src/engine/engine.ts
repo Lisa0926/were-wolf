@@ -8,7 +8,7 @@ import { createRng, type Rng } from '../rng/rng';
 import { exportGame as buildGameRecord, type GameEvent, type GameRecord } from './events';
 import { derivePending, transition, type TransitionCtx } from './transition';
 import type { Action, EngineError, Err, GameState, PendingDecision } from './types';
-import { eventsFor, viewFor, type VisibleView } from './view';
+import { eventsFor, viewFor, type DecisionRequest, type VisibleView } from './view';
 
 /** 从 idle 开始一局；seed 为 string（空串合法）。真人座位由发牌随机决定。 */
 export function createGame(seed: string): Engine {
@@ -43,6 +43,37 @@ export class Engine {
   /** 某座位的可见信息视图（人类渲染与 AI 决策共用，data-model §6） */
   viewFor(seat: number): VisibleView {
     return viewFor(this._state, this._log, seat);
+  }
+
+  /**
+   * 当前待决策的请求（contracts/engine-api.md §2，research D3「单流借出」的落点，T034）
+   *
+   * - 无待决策（idle / dawn / exile / game_over）→ null；
+   * - 行动者解析：`pendingDecision.actor` 是座位就用它；是 `'wolf-team'` 则取
+   *   **存活狼中座位最小者**（确定性选择，与 research D6「狼队一个声音」一致）；
+   * - `rng` 是 `startGame` 时创建的**唯一**随机流：本方法既不推进它、也不派生
+   *   新流，decider 在本次决策内消费它（消费顺序 = 状态机动作顺序 ⇒ 同 seed 同局）。
+   */
+  decisionRequest(): DecisionRequest | null {
+    const pending = this.pendingDecision;
+    if (!pending) return null;
+    const seat =
+      pending.actor === 'wolf-team'
+        ? this.state.players
+            .filter((p) => p.alive && p.role === 'werewolf')
+            .map((p) => p.seat)
+            .sort((a, b) => a - b)[0]
+        : pending.actor;
+    if (seat === undefined) {
+      // 结构上不可达：存在 wolf-team 待决策 ⇒ 必至少有一只存活狼
+      throw new Error('decisionRequest: wolf-team 待决策但没有存活狼（结构上不可达）');
+    }
+    return {
+      kind: pending.kind,
+      view: this.viewFor(seat),
+      legalTargets: [...pending.legalTargets],
+      rng: this.rng,
+    };
   }
 
   /** 某座位可见的事件投影流（UI 日志渲染数据源，硬约束 4） */
