@@ -5,9 +5,10 @@
  * 非法动作返回 Err<EngineError>，状态不变、不产生事件。
  */
 import { createRng, type Rng } from '../rng/rng';
-import type { GameEvent } from './events';
+import { exportGame as buildGameRecord, type GameEvent, type GameRecord } from './events';
 import { derivePending, transition, type TransitionCtx } from './transition';
 import type { Action, EngineError, Err, GameState, PendingDecision } from './types';
+import { eventsFor, viewFor, type VisibleView } from './view';
 
 /** 从 idle 开始一局；seed 为 string（空串合法）。真人座位由发牌随机决定。 */
 export function createGame(seed: string): Engine {
@@ -37,6 +38,21 @@ export class Engine {
   /** 完整事件日志（含隐藏事实），终局复盘/导出用 */
   get eventLog(): readonly GameEvent[] {
     return this._log;
+  }
+
+  /** 某座位的可见信息视图（人类渲染与 AI 决策共用，data-model §6） */
+  viewFor(seat: number): VisibleView {
+    return viewFor(this._state, this._log, seat);
+  }
+
+  /** 某座位可见的事件投影流（UI 日志渲染数据源，硬约束 4） */
+  eventsFor(seat: number): GameEvent[] {
+    return eventsFor(this._state, this._log, seat);
+  }
+
+  /** 序列化导出（格式见 contracts/event-stream.md §3，FR-009） */
+  exportGame(): GameRecord {
+    return buildGameRecord(this._state.seed, this._log);
   }
 
   dispatch(action: Action): GameEvent[] | Err<EngineError> {

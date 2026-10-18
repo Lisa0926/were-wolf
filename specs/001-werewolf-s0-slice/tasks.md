@@ -137,10 +137,10 @@ description: "狼人杀 S0 垂直切片实现任务清单（依 plan 里程碑 M
 **FR/套件**: FR-007、FR-008；T5 `isolation`。
 **说明**: plan T7 行内的「可见性投影规则」断言并入 T5 执行（投影即隔离；同时避免 M3/M4 并行时同写 `events.test.ts` 冲突）。
 
-- [ ] T016 [P] 先写测试（红）信息隔离于 `projects/werewolf/tests/isolation.test.ts`：三种角色 `viewFor` 精确断言——狼见 `teammates`（狼队座位）、预言家见 `seerChecks`（自己查验史）、村民无此二字段；`players` 仅死者带 `revealedRole`；`eventsFor` 投影口径——`public` 恒可见、`wolf-team` 仅狼可见、`seer-private` 仅预言家可见、`end` 终局或载荷本人；死者观战投影与生前口径一致（FR-007）；`DecisionRequest` 输入（`view`/`legalTargets`/`rng`）深检不含任何他人隐藏身份；整局夹具对全部 6 座位扫描
+- [x] T016 [P] 先写测试（红）信息隔离于 `projects/werewolf/tests/isolation.test.ts`：三种角色 `viewFor` 精确断言——狼见 `teammates`（狼队座位）、预言家见 `seerChecks`（自己查验史）、村民无此二字段；`players` 仅死者带 `revealedRole`；`eventsFor` 投影口径——`public` 恒可见、`wolf-team` 仅狼可见、`seer-private` 仅预言家可见、`end` 终局或载荷本人；死者观战投影与生前口径一致（FR-007）；`DecisionRequest` 输入（`view`/`legalTargets`/`rng`）深检不含任何他人隐藏身份；整局夹具对全部 6 座位扫描
   - 依赖：T015
   - 验收：`pnpm vitest run tests/isolation.test.ts` 失败（红）
-- [ ] T017 [P] 实现 `projects/werewolf/src/engine/view.ts`：`viewFor(seat)`（`VisibleView` 构造，data-model §6）+ `eventsFor(seat)`（可见性过滤），并在 `engine.ts` 门面挂接两方法
+- [x] T017 [P] 实现 `projects/werewolf/src/engine/view.ts`：`viewFor(seat)`（`VisibleView` 构造，data-model §6）+ `eventsFor(seat)`（可见性过滤），并在 `engine.ts` 门面挂接两方法
   - 依赖：T016
   - 验收：`tests/isolation.test.ts` 全绿（T5 ✓，§8 第 8 条 ✓）
 
@@ -152,10 +152,10 @@ description: "狼人杀 S0 垂直切片实现任务清单（依 plan 里程碑 M
 **独立验收**: `tests/events.test.ts` 序列化断言全绿（「仅凭事件重建时间线」整局部分按 plan M4 口径留到 M6）。
 **FR/套件**: FR-009；T7 `events`。
 
-- [ ] T018 [P] 先写测试（红）事件序列化于 `projects/werewolf/tests/events.test.ts`：`exportGame()` 序列化回路——`JSON.parse(JSON.stringify(exportGame()))` 深相等；`GameRecord` = `{ schemaVersion: 1, feature: 'werewolf-s0', seed, events }`；`seq` 从 1 起全局单调递增；夹具局 9 类事件载荷字段逐项对照契约 §1；事件不含墙钟时间字段
+- [x] T018 [P] 先写测试（红）事件序列化于 `projects/werewolf/tests/events.test.ts`：`exportGame()` 序列化回路——`JSON.parse(JSON.stringify(exportGame()))` 深相等；`GameRecord` = `{ schemaVersion: 1, feature: 'werewolf-s0', seed, events }`；`seq` 从 1 起全局单调递增；夹具局 9 类事件载荷字段逐项对照契约 §1；事件不含墙钟时间字段
   - 依赖：T015
   - 验收：`pnpm vitest run tests/events.test.ts` 失败（红）
-- [ ] T019 [P] 实现导出于 `projects/werewolf/src/engine/events.ts`：`GameRecord` + `exportGame()`（完整事件日志含隐藏事实），并在 `engine.ts` 门面暴露 `exportGame()`
+- [x] T019 [P] 实现导出于 `projects/werewolf/src/engine/events.ts`：`GameRecord` + `exportGame()`（完整事件日志含隐藏事实），并在 `engine.ts` 门面暴露 `exportGame()`
   - 依赖：T018
   - 验收：`tests/events.test.ts` 序列化断言全绿（T7 除整局重建部分，符合 plan M4 验收）
 

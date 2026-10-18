@@ -209,3 +209,35 @@ export const evGameOver = (
   visibility: 'public',
   finalTable: finalTable.map((p) => ({ ...p })),
 });
+
+/** —— 序列化导出（contracts/event-stream.md §3，FR-009）—— */
+
+/** 导出契约版本：破坏性变更时 +1，并在 event-stream.md §3 登记 */
+export const SCHEMA_VERSION = 1 as const;
+/** 导出文档的特性标识 */
+export const GAME_RECORD_FEATURE = 'werewolf-s0' as const;
+
+/** 单局导出文档（单 JSON 文档，非 JSONL；S0 无增量存储需求） */
+export interface GameRecord {
+  schemaVersion: typeof SCHEMA_VERSION;
+  feature: typeof GAME_RECORD_FEATURE;
+  seed: string;
+  events: GameEvent[];
+}
+
+/**
+ * 导出整局事件流（含隐藏事实，硬约束 4 / D35）。
+ *
+ * - 完整性：仅凭 events 即可重建整局可见叙事（SC-004 口径，T025 断言）
+ * - 纯 JSON：事件本身不含墙钟时间戳，只有 seq/round；导出走一次 JSON 往返，
+ *   既保证结果与引擎日志互不共享引用（调用方可安全改写/下载），也保证
+ *   返回值可被 `JSON.parse(JSON.stringify(...))` 无损往返（契约 §3）
+ */
+export function exportGame(seed: string, log: readonly GameEvent[]): GameRecord {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    feature: GAME_RECORD_FEATURE,
+    seed,
+    events: JSON.parse(JSON.stringify(log)) as GameEvent[],
+  };
+}
